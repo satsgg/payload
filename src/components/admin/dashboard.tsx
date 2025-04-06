@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Video, Users, Settings, Upload } from "lucide-react";
 import UploadVideo from "./upload-video";
+import AdminVideoList from "./video-list";
 
 type Tab = "videos" | "upload" | "users" | "settings";
 
@@ -12,12 +13,7 @@ export default function AdminDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case "videos":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Video Management</h2>
-            <p>Manage your video content here.</p>
-          </div>
-        );
+        return <AdminVideoList />;
       case "upload":
         return <UploadVideo />;
       case "users":

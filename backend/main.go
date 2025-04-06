@@ -82,7 +82,7 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	{
-		api.GET("/videos", handleGetVideos(db))
+		api.GET("/videos", handleListVideos(db))
 		api.GET("/videos/:id", handleGetVideo(db))
 		
 		// Admin routes
@@ -98,6 +98,9 @@ func main() {
 			}
 		}
 	}
+
+	// Public routes
+	r.Static("/videos", "./videos")
 
 	// Start server
 	addr := fmt.Sprintf(":%d", config.Port)
@@ -142,15 +145,78 @@ func initDB() (*sql.DB, error) {
 }
 
 // Handlers will be implemented here
-func handleGetVideos(db *sql.DB) gin.HandlerFunc {
+func handleListVideos(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Implementation
+		rows, err := db.Query("SELECT id, title, description, duration, thumbnail, created_at FROM videos ORDER BY created_at DESC")
+		if err != nil {
+			log.Printf("Database query error: %v", err)
+			c.JSON(500, gin.H{"error": "Failed to fetch videos", "details": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		var videos []gin.H
+		for rows.Next() {
+			var id, title, description, thumbnail string
+			var duration int
+			var createdAt time.Time
+			err := rows.Scan(&id, &title, &description, &duration, &thumbnail, &createdAt)
+			if err != nil {
+				log.Printf("Row scanning error: %v", err)
+				c.JSON(500, gin.H{"error": "Failed to scan video", "details": err.Error()})
+				return
+			}
+			videos = append(videos, gin.H{
+				"id":            id,
+				"title":         title,
+				"description":   description,
+				"duration":      duration,
+				"thumbnail_path": thumbnail,
+				"created_at":    createdAt.Format(time.RFC3339),
+			})
+		}
+
+		if err = rows.Err(); err != nil {
+			log.Printf("Error after row iteration: %v", err)
+			c.JSON(500, gin.H{"error": "Error processing video list", "details": err.Error()})
+			return
+		}
+
+		c.JSON(200, videos)
 	}
 }
 
 func handleGetVideo(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Implementation
+		videoID := c.Param("id")
+		if videoID == "" {
+			c.JSON(400, gin.H{"error": "Video ID is required"})
+			return
+		}
+
+		var id, title, description string
+		var duration int
+		var createdAt time.Time
+		err := db.QueryRow(
+			"SELECT id, title, description, duration, created_at FROM videos WHERE id = ?",
+			videoID,
+		).Scan(&id, &title, &description, &duration, &createdAt)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				c.JSON(404, gin.H{"error": "Video not found"})
+			} else {
+				c.JSON(500, gin.H{"error": "Failed to fetch video"})
+			}
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"id":          id,
+			"title":       title,
+			"description": description,
+			"duration":    duration,
+			"created_at":  createdAt.Format(time.RFC3339),
+		})
 	}
 }
 
