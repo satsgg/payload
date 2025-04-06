@@ -5,8 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
+
+	"backend/video"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -152,8 +156,89 @@ func handleGetVideo(db *sql.DB) gin.HandlerFunc {
 
 func handleUploadVideo(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Implementation
+		// Get form data
+		title := c.PostForm("title")
+		description := c.PostForm("description")
+		file, err := c.FormFile("video")
+		if err != nil {
+			c.JSON(400, gin.H{"error": "No video file provided"})
+			return
+		}
+
+		// Generate unique ID for the video
+		videoID := generateVideoID()
+
+		// Create video directory
+		videoDir := filepath.Join(config.VideoStorePath, videoID)
+		if err := os.MkdirAll(videoDir, 0755); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to create video directory"})
+			return
+		}
+
+		// Save uploaded file
+		uploadPath := filepath.Join(videoDir, "original.mp4")
+		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to save video file"})
+			return
+		}
+
+		// Initialize video processor
+		processor, err := video.NewVideoProcessor()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to initialize video processor"})
+			return
+		}
+
+		// Get video duration
+		duration, err := processor.GetVideoDuration(uploadPath)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get video duration"})
+			return
+		}
+
+		// Generate thumbnail
+		_, err = processor.GenerateThumbnail(uploadPath, videoDir)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to generate thumbnail"})
+			return
+		}
+
+		// Convert to HLS
+		_, err = processor.ConvertToHLS(uploadPath, videoDir)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to convert video to HLS"})
+			return
+		}
+
+		// Save video info to database
+		_, err = db.Exec(`
+			INSERT INTO videos (
+				id, title, description, filename, duration, thumbnail, created_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, videoID, title, description, "playlist.m3u8", duration, "thumbnail.jpg", time.Now())
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to save video info"})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"id": videoID,
+			"title": title,
+			"description": description,
+			"duration": duration,
+		})
 	}
+}
+
+func generateVideoID() string {
+	// Generate a random 8-character string
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 8)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }
 
 func handleUpdateVideo(db *sql.DB) gin.HandlerFunc {
