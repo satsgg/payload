@@ -26,6 +26,7 @@ export default function VideoList() {
           throw new Error("Failed to fetch videos");
         }
         const data = await response.json();
+        console.log(data);
         setVideos(data);
       } catch (error) {
         console.error("Error fetching videos:", error);

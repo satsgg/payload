@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"backend/video"
+	"payload/backend/video"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -154,7 +154,9 @@ func handleListVideos(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		var videos []gin.H
+		// Initialize an empty array
+		videos := make([]gin.H, 0)
+
 		for rows.Next() {
 			var id, title, description, thumbnail string
 			var duration int
