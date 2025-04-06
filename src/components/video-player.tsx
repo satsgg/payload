@@ -12,16 +12,7 @@ export default function VideoPlayer({ videoId }: VideoPlayerProps) {
     const video = videoRef.current;
     if (!video) return;
 
-    const hls = new Hls({
-      xhrSetup: function (xhr, url) {
-        // Ensure all segment requests go through the API
-        if (url.includes(".ts")) {
-          const segmentPath = url.split("/").pop();
-          xhr.open("GET", `/api/videos/${videoId}/${segmentPath}`, true);
-        }
-      },
-    });
-
+    const hls = new Hls();
     hls.loadSource(`/api/videos/${videoId}/playlist.m3u8`);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {

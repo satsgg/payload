@@ -50,6 +50,28 @@ func (p *VideoProcessor) ConvertToHLS(inputPath, outputDir string) (string, erro
 		return "", fmt.Errorf("ffmpeg conversion failed: %v", err)
 	}
 
+	// Read the generated playlist file
+	content, err := os.ReadFile(outputPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read playlist file: %v", err)
+	}
+
+	// Update segment paths to use API route
+	lines := strings.Split(string(content), "\n")
+	for i, line := range lines {
+		if strings.HasSuffix(line, ".ts") {
+			// Keep only the segment filename and prepend with API route
+			segmentName := filepath.Base(line)
+			lines[i] = segmentName
+		}
+	}
+
+	// Write the modified playlist back to file
+	modifiedContent := strings.Join(lines, "\n")
+	if err := os.WriteFile(outputPath, []byte(modifiedContent), 0644); err != nil {
+		return "", fmt.Errorf("failed to write modified playlist: %v", err)
+	}
+
 	return outputPath, nil
 }
 
