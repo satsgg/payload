@@ -29,12 +29,7 @@ export default function AdminVideoList() {
 
   const fetchVideos = async () => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch("/api/admin/videos", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/videos");
 
       if (!response.ok) {
         throw new Error("Failed to fetch videos");

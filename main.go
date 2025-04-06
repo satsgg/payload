@@ -83,6 +83,7 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	{
+		// Public routes
 		api.GET("/videos", handleListVideos(db))
 		api.GET("/videos/:id", handleGetVideo(db))
 		api.GET("/videos/:id/*filepath", handleStreamVideo(db))
@@ -146,6 +147,8 @@ func initDB() (*sql.DB, error) {
 // Handlers will be implemented here
 func handleListVideos(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log.Printf("Handling list videos request")
+		
 		rows, err := db.Query("SELECT id, title, description, duration, thumbnail, created_at FROM videos ORDER BY created_at DESC")
 		if err != nil {
 			log.Printf("Database query error: %v", err)
@@ -183,6 +186,7 @@ func handleListVideos(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		log.Printf("Successfully fetched %d videos", len(videos))
 		c.JSON(200, videos)
 	}
 }
