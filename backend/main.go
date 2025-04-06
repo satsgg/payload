@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"backend/video"
@@ -84,6 +85,7 @@ func main() {
 	{
 		api.GET("/videos", handleListVideos(db))
 		api.GET("/videos/:id", handleGetVideo(db))
+		api.GET("/videos/:id/*filepath", handleStreamVideo(db))
 		
 		// Admin routes
 		admin := api.Group("/admin")
@@ -98,9 +100,6 @@ func main() {
 			}
 		}
 	}
-
-	// Public routes
-	r.Static("/videos", "./videos")
 
 	// Start server
 	addr := fmt.Sprintf(":%d", config.Port)
@@ -396,5 +395,36 @@ func handleVerifyToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// The authMiddleware already verified the token
 		c.JSON(200, gin.H{"status": "valid"})
+	}
+}
+
+func handleStreamVideo(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		videoID := c.Param("id")
+		requestedFile := c.Param("filepath")
+		
+		if videoID == "" {
+			c.JSON(400, gin.H{"error": "Video ID is required"})
+			return
+		}
+
+		// Construct the full path to the video file
+		videoPath := filepath.Join(config.VideoStorePath, videoID, requestedFile)
+		
+		// Check if file exists
+		if _, err := os.Stat(videoPath); os.IsNotExist(err) {
+			c.JSON(404, gin.H{"error": "Video file not found"})
+			return
+		}
+
+		// Set appropriate headers based on file type
+		if strings.HasSuffix(requestedFile, ".m3u8") {
+			c.Header("Content-Type", "application/x-mpegURL")
+		} else if strings.HasSuffix(requestedFile, ".ts") {
+			c.Header("Content-Type", "video/mp2t")
+		}
+		
+		// Stream the file
+		c.File(videoPath)
 	}
 }
