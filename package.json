@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start:backend": "cd backend && go run main.go",
+    "start:backend": "go run main.go",
     "start": "npm run build && npm run start:backend"
   },
   "dependencies": {
