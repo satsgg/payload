@@ -74,7 +74,9 @@ npm run dev
 npm run start:backend
 ```
 
-The application will be available at `http://localhost:8080`
+The application will be available at `http://localhost:5173/`.
+
+Log into the admin panel at `http://localhost:5173/admin` to get started uploading videos.
 
 ## Building for Production
 
