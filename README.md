@@ -20,7 +20,8 @@ A modern video streaming platform built with React, TypeScript, and Go. This app
 - TypeScript
 - Vite
 - Tailwind CSS
-- Radix UI Components
+- ShadCN
+- Media-Chrome
 - React Router
 - React Hook Form
 - Zod for validation
@@ -31,7 +32,7 @@ A modern video streaming platform built with React, TypeScript, and Go. This app
 - Gin Web Framework
 - SQLite Database
 - JWT Authentication
-- Ffmpeg
+- FFmpeg
 
 ## Prerequisites
 
